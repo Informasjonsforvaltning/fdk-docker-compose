@@ -1,0 +1,246 @@
+version: "3"
+
+services:
+
+  ### Shared services - databases + sso
+  ####################################
+
+  elasticsearch5:
+    volumes:
+      - /usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    environment:
+      - cluster.name=elasticsearch
+      - xpack.security.enabled=false
+      - xpack.monitoring.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+
+  fuseki:
+    build: ../fdk/applications/fuseki
+    volumes:
+      - /etc/fuseki/databases/
+    ports:
+      - "3030:8080"
+
+  postgres:
+    restart: always
+    volumes:
+      - /var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  # OIDC requires host names to be available both in service and for browsers for redirects.
+  # The simplest way to achieve this is to register the service names as hostnames also in the host machine hosts file:
+  # mac: /private/etc/hosts
+  # windows c:\Windows\System32\Drivers\etc\hosts
+
+  # add one line:
+  # 127.0.0.1       sso
+
+  sso:
+    #because of a keyckoak-user-storage-rest-module is required, we cannot always use build here (todo use multistage build and build java in docker)
+#    build: ../fdk/applications/sso
+    volumes:
+      #this allows to run command "npm run keycloak-export"
+      - ../fdk/applications/sso/export:/tmp/keycloak/export
+      #with link, et is enough to restart container to perform, instead of rebuild
+      - ../fdk/applications/sso/import:/tmp/keycloak/import
+      - ../fdk/applications/sso/import-template:/tmp/keycloak/import-template
+      - ../fdk/applications/sso/tools:/opt/fdk/tools
+    # cp libraries/keycloak-user-storage-rest/target/keycloak-user-storage-rest.jar applications-external/sso/deployments/
+    #      - ./applications/sso/deployments:/opt/jboss/keycloak/standalone/deployments
+    environment:
+      - KEYCLOAK_USER=admin
+      - KEYCLOAK_PASSWORD=admin
+#      - KEYCLOAK_LOGLEVEL=DEBUG
+      - SSO_HOST=http://localhost:8084
+      - REGISTRATION_HOST=http://localhost:8098
+    # This is local mock for ID-Porten, use this in dev, ut1 and st1. in it1 use idporten test, and in prod use idporten prod
+      - IDPORTEN_OIDC_ROOT=http://localhost:8084/auth/realms/idporten-mock
+      - IDPORTEN_CLIENT_ID=oidc_brreg_fellesdatakatalog
+      - IDPORTEN_CLIENT_SECRET=29a2cfe1-1a61-4a04-bf84-64d70a340d04
+    ports:
+      - "8084:8084"
+
+  ### ingress modules
+  ##################################
+
+  nginx-search:
+    build: ../fdk/applications/nginx-search
+    ports:
+      - "8080:8080"
+
+  nginx-registration:
+    build: ../fdk/applications/nginx-registration
+    ports:
+      - "8098:8080"
+
+  ### external service proxies
+  ##################################
+
+  nginx-altinn-proxy:
+    build: ../fdk/applications/nginx-altinn-proxy
+    ports:
+      - "8126:8080"
+
+  nginx-enhetsregisteret-proxy:
+    build: ../fdk/applications/nginx-enhetsregisteret-proxy
+    ports:
+      - "8130:8080"
+
+  ### nodejs services
+  ####################################
+
+  search:
+    build: ../fdk/applications/search
+    command: npm start
+    ports:
+      - "3000:3000"
+    volumes:
+      - ../fdk/applications/search/src:/usr/src/app/src
+    environment:
+      - REDUX_LOG=""
+      - DISQUS_SHORTNAME=CHANGE_ME
+
+  registration-react:
+    build: ../fdk/applications/registration-react
+    command: npm start
+    ports:
+      - "4300:4300"
+    volumes:
+      - ../fdk/applications/registration-react/src:/usr/src/app/src
+    environment:
+      - REDUX_LOG=""
+      - CONCEPT_REGISTRATION_API_HOST=http://localhost:8200
+      - CONCEPT_REGISTRATION_HOST=http://localhost:8202
+      - SEARCH_HOST=http://localhost:8080
+      - SSO_HOST=http://localhost:8084
+
+  ### java services
+  #############################
+
+  api-cat:
+    ports:
+      - "8102:8080"
+    environment:
+      - JAVA_OPTS= -ea -Djava.security.egd=file:/dev/./urandom -Xmx256M -Dspring.profiles.active=docker
+      - LOG_LEVEL=DEBUG
+      - LOG_FORMAT=compact
+
+  concept-cat:
+    ports:
+      - "8104:8080"
+    environment:
+      - JAVA_OPTS=-Djava.security.egd=file:/dev/./urandom -Xmx256M -Dspring.profiles.active=docker
+      - LOG_LEVEL=DEBUG
+
+  informationmodel-cat:
+    ports:
+      - "8108:8080"
+    environment:
+      - JAVA_OPTS=-Djava.security.egd=file:/dev/./urandom -Xmx512M -Dspring.profiles.active=docker
+      - LOG_LEVEL=DEBUG
+
+  harvester:
+    ports:
+      - "8082:8080"
+    environment:
+      - JAVA_OPTS= -ea -Djava.security.egd=file:/dev/./urandom -Xmx256M -Dspring.profiles.active=docker
+      - harvester_adminUsername=test_admin
+      - harvester_adminPassword=password
+
+  harvester-api:
+    ports:
+      - "8106:8080"
+    environment:
+      - JAVA_OPTS= -ea -Djava.security.egd=file:/dev/./urandom -Xmx1024M -Dspring.profiles.active=docker
+      - application.crawlerThreadPoolSize=2
+      - harvestRecordRetentionDays=30
+      - LOG_FORMAT=compact
+
+  reference-data:
+    ports:
+      - "8112:8080"
+    environment:
+      - JAVA_OPTS=-Djava.security.egd=file:/dev/./urandom -Xmx256M -Dspring.profiles.active=docker
+      - FDK_SQL_JDBC_CONNECTION=jdbc:postgresql://postgres:5432/postgres?currentSchema=fdkreference
+      - FDK_SQL_USERNAME=postgres
+      - FDK_SQL_PASSWORD=password
+
+  registration-api:
+    ports:
+      - "8114:8080"
+    environment:
+      - JAVA_OPTS= -ea -Djava.security.egd=file:/dev/./urandom -Xmx256M -Dspring.profiles.active=docker
+      - registrationApi_harvesterUsername=test_admin
+      - registrationApi_harvesterPassword=password
+      - LOG_LEVEL=DEBUG
+      - LOG_FORMAT=compact
+      - FDK_ENHETSREGISTERET_PROXY_URL=http://nginx-enhetsregisteret-proxy-mock:8080/enhetsregisteret/api/enheter/
+
+  search-api:
+    ports:
+      - "8118:8080"
+    environment:
+      - JAVA_OPTS= -ea -Djava.security.egd=file:/dev/./urandom -Xmx256M -Dspring.profiles.active=docker
+
+  user-api:
+    ports:
+      - "8124:8080"
+    environment:
+      - ALTINN_PROXY_HOST=http://nginx-altinn-proxy-mock:8080
+    depends_on:
+      - nginx-altinn-proxy-mock
+
+  ### Concept catalog
+  ###########################
+
+  concept-catalogue:
+    ports:
+      - "8200:8080"
+    environment:
+      - JAVA_OPTS=-Djava.security.egd=file:/dev/./urandom -Xmx256M -Dspring.profiles.active=docker
+      - FDK_SQL_JDBC_CONNECTION=jdbc:postgresql://postgres:5432/postgres?currentSchema=conceptRegistration
+      - FDK_SQL_USERNAME=postgres
+      - FDK_SQL_PASSWORD=password
+
+  concept-catalogue-gui:
+    build: ../concept-catalogue-gui
+    command: npm start
+    ports:
+      - "8202:3111"
+    volumes:
+      - ../concept-catalogue-gui/src:/usr/src/app/src
+    environment:
+      - CONCEPT_REGISTRATION_API=http://localhost:8200
+      - REGISTRATION_HOST=http://localhost:8098
+      - PUBLISHER_API=https://www.ut1.fellesdatakatalog.brreg.no
+      - PUBLISHER_DATA_AUTHORIZATION=Basic ZmRrOkJSUkVH
+
+  ### test and mock modules
+  ###########################
+
+  nginx-altinn-proxy-mock:
+    build: ../fdk/applications/nginx-altinn-proxy-mock
+    ports:
+      - "8128:8080"
+
+  nginx-enhetsregisteret-proxy-mock:
+    build: ../fdk/applications/nginx-enhetsregisteret-proxy-mock
+    ports:
+      - "8132:8080"
+
+  registration-auth:
+    ports:
+      - "8116:8080"
+    environment:
+      - JAVA_OPTS= -ea -Djava.security.egd=file:/dev/./urandom -Xmx256M -Dspring.profiles.active=docker
+
+#todo this should be a run command not a service
+  e2e:
+    build: ../fdk/applications/e2e
+    volumes:
+      - ../fdk/applications/e2e/test:/usr/src/app/test
+      - ../fdk/applications/e2e/reports:/usr/src/app/reports
