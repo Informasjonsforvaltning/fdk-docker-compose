@@ -5,10 +5,7 @@
 `docker-compose.yml` - general cluster layout, that is mimicked also in kubernetes in cloud environment
 
 `docker-compose.override.yml` - Development environment specific variables, exposed ports and build commands 
-
-`.envrc` - secret values and locally adjusted environment variables. Common values can be assigned in `docker-compose.override.yml`
  
-
 ## Setup
 
 At least IntelliJ has support for multiple git repos in one project, and this can be utilized by arranging all sub-projects under one parent directory. 
