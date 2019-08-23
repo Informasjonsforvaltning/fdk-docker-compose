@@ -41,7 +41,7 @@ services:
 
   sso:
     #because of a keyckoak-user-storage-rest-module is required, we cannot always use build here (todo use multistage build and build java in docker)
-#    build: ../fdk/applications/sso
+    build: ../fdk/applications/sso
     volumes:
       #this allows to run command "npm run keycloak-export"
       - ../fdk/applications/sso/export:/tmp/keycloak/export
@@ -57,6 +57,7 @@ services:
 #      - KEYCLOAK_LOGLEVEL=DEBUG
       - SSO_HOST=http://localhost:8084
       - REGISTRATION_HOST=http://localhost:8098
+      - CONCEPT_CATALOGUE_HOST=http://localhost:8202
     # This is local mock for ID-Porten, use this in dev, ut1 and st1. in it1 use idporten test, and in prod use idporten prod
       - IDPORTEN_OIDC_ROOT=http://localhost:8084/auth/realms/idporten-mock
       - IDPORTEN_CLIENT_ID=oidc_brreg_fellesdatakatalog
@@ -80,10 +81,10 @@ services:
   ### external service proxies
   ##################################
 
-  nginx-altinn-proxy:
-    build: ../fdk/applications/nginx-altinn-proxy
-    ports:
-      - "8126:8080"
+  # nginx-altinn-proxy:
+  #   build: ../fdk/applications/nginx-altinn-proxy
+  #   ports:
+  #     - "8126:8080"
 
   nginx-enhetsregisteret-proxy:
     build: ../fdk/applications/nginx-enhetsregisteret-proxy
