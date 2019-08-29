@@ -1,10 +1,4 @@
 # Recommended development setup for combined fdk+begrepsregistrering cluster. 
-
-## Files 
-
-`docker-compose.yml` - general cluster layout, that is mimicked also in kubernetes in cloud environment
-
-`docker-compose.override.yml` - Development environment specific variables, exposed ports and build commands 
  
 ## Setup
 
