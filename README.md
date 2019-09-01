@@ -64,3 +64,18 @@ Docker compose is based on images. Please see the readme of relevant modules how
     # bring up containers and build missing images
     docker-compose up -d
     ```
+
+## Runnning frontend dev-servers on host
+
+Docker-compose uses `.env` file for overriding variables. But when you want to run the dev servers on hosts, you need to configure and run `.envrc` based on `.envrc.template`. Optionally install [direnv](https://direnv.net/docs/installation.md) to dynamically load/unload variables based on the working directory
+
+```
+#search 
+#(TODO)
+
+# registration-react
+(cd ../fdk/applications/registration-react ; npm run dev)
+
+# concept-catalogue-gui
+(cd ../concept-catalogue-gui ; npm run dev)
+```

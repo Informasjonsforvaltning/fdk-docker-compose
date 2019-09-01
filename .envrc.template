@@ -1,0 +1,10 @@
+# use this file as an example for your local .envrc that contains your local setup configuration that you don't want to check in git.
+# as an example you may want to configure
+
+#export REGISTRATION_API_HOST=http://localhost:8114 # in docker-compose, default
+
+#export CONCEPT_REGISTRATION_API_HOST=http://localhost:8200 # in docker-compose, default
+#export CONCEPT_REGISTRATION_API=http://localhost:8201 # in host
+
+#export CONCEPT_REGISTRATION_HOST=http://localhost:8202 # in docker-compose, default
+#export CONCEPT_REGISTRATION_HOST=http://localhost:8203 # in host
