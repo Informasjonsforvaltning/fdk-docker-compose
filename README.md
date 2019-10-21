@@ -79,3 +79,37 @@ Docker-compose uses `.env` file for overriding variables. But when you want to r
 # concept-catalogue-gui
 (cd ../concept-catalogue-gui ; npm run dev)
 ```
+
+#Troubleshooting
+Error:
+```
+Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.8.1:compile (java-compile)
+Fatal error compiling: invalid flag: --release ->
+```
+This is most likely caused by a lower java version than what is required to build a-backend-service
+
+Fix alternative 1(temporary):
+Remove a-backend-service from env file
+
+
+Fix alternative 2:
+1. Download 11 from [Oracle](https://www.oracle.com/technetwork/java/javase/downloads/jdk11-downloads-5066655.html)
+2. Update JAVA_HOME variable
+
+    ######For mac
+````
+export JAVA_HOME=`/usr/libexec/java_home -v 11.0
+````
+
+If you want an easy way to switch between java versions add the following to your ~/.bash_profile file;
+```
+alias java8="export JAVA_HOME=`/usr/libexec/java_home -v 1.8`"
+alias java11="export JAVA_HOME=`/usr/libexec/java_home -v 11.0`"
+```
+
+Or for running maven with different versions;
+
+```
+alias mvn8="export JAVA_HOME=`/usr/libexec/java_home -v 1.8` && mvn"
+alias mvn11="export JAVA_HOME=`/usr/libexec/java_home -v 11.0` && mvn"
+```
